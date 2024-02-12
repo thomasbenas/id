@@ -3,3 +3,6 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+dataset/yelp_academic_dataset_business.json
+dataset/yelp_academic_dataset_checkin.json
+dataset/yelp_academic_dataset_tip.csv
