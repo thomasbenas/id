@@ -54,7 +54,7 @@ object App {
         categories_info = categories_info
             .drop(col("categories"))
 
-        // DATAFRAME Categorie
+        // DATAFRAME Attributes
         var categories = categories_info.select("business_id", "category_name")
 
         // Supression des doublons
