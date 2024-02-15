@@ -1,79 +1,58 @@
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.functions.{col, when}
+import org.apache.spark.sql.types.{BooleanType, DateType, TimestampType}
+import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
+import org.apache.spark.sql.types._
 
-object SimpleApp {
-	def main(args: Array[String]) {
-		// Initialisation de Spark
-		val spark = SparkSession.builder.appName("ETL").master("local[4]").getOrCreate()
-		
-		val usersFile = "../../../dataset/yelp_academic_dataset_user.json"
-		
-		// Chargement du fichier JSON
-		var users = spark.read.json(usersFile).cache()
-		// Changement du type d'une colonne
-		users = users.withColumn("yelping_since", col("yelping_since").cast(DateType))
-		
-		// Extraction des amis, qui formeront une table "user_id - friend_id"
-		var friends = users.select("user_id", "friends")
-		friends = friends.withColumn("friends", explode(org.apache.spark.sql.functions.split(col("friends"), ",")))
-		friends = friends.withColumnRenamed("friends", "friend_id")
-		// Pour supprimer les lignes sans friend_id
-		friends = friends.filter(col("friend_id").notEqual("None"))
-		
-		// Suppression de la colonne "friends" dans le DataFrame users
-		users = users.drop(col("friends"))
-		
-		// Extraction des années en temps qu'"élite", qui formeront une table "user_id - year"
-		var elite = users.select("user_id", "elite")
-		elite = elite.withColumn("elite", explode(org.apache.spark.sql.functions.split(col("elite"), ",")))
-		elite = elite.withColumnRenamed("elite", "year")
-		// Pour supprimer les lignes sans year
-		elite = elite.filter(col("year").notEqual(""))
-		elite = elite.withColumn("year", col("year").cast(IntegerType))
-		
-		// Suppression de la colonne "elite" dans le DataFrame users
-		users = users.drop(col("elite"))
-		
-		// Affichage du schéma des DataFrame
-		users.printSchema()
-		friends.printSchema()
-		elite.printSchema()
-		
-		val reviewsFile = "/chemin_dossier/yelp_academic_dataset_review.json"
-		// Chargement du fichier JSON
-		var reviews = spark.read.json(reviewsFile).cache()
-		// Changement du type d'une colonne
-		reviews = reviews.withColumn("date", col("date").cast(DateType))
-		
-		// Affichage du schéma du DataFrame
-		reviews.printSchema()
-		
-		// Paramètres de la connexion BD
-		Class.forName("org.postgresql.Driver")
-		val url = "jdbc:postgresql://stendhal:5432/tpid2020"
-		import java.util.Properties
-		val connectionProperties = new Properties()
-		connectionProperties.setProperty("driver", "org.postgresql.Driver")
-		connectionProperties.setProperty("user", "user")
-		connectionProperties.setProperty("password","password")
-		
-		// Enregistrement du DataFrame users dans la table "user"
-		users.write
-			.mode(SaveMode.Overwrite).jdbc(url, "yelp.\"user\"", connectionProperties)
-		
-		// Enregistrement du DataFrame friends dans la table "friend"
-		friends.write
-			.mode(SaveMode.Overwrite).jdbc(url, "yelp.friend", connectionProperties)
-		// Enregsitrement du DataFrame elite dans la table "elite"
-		elite.write
-			.mode(SaveMode.Overwrite).jdbc(url, "yelp.elite", connectionProperties)
-		
-		// Enregistrement du DataFrame reviews dans la table "review"
-		reviews.write
-			.mode(SaveMode.Overwrite)
-			.jdbc(url, "yelp.review", connectionProperties)
-		
-		spark.stop()
-	}
+object App {
+    def main(args: Array[String]): Unit = {
+        // Initialisation de Spark
+        val spark = SparkSession.builder.appName("ETL").master("local[4]").getOrCreate()
+
+
+        // lecture du fichier tip.csv
+        var tip = spark.read
+        .option("header",true)
+        .csv("data/yelp_academic_dataset_tip.csv")
+        .select("user_id","date","text")
+
+        tip = tip
+            .withColumn("tip_id", monotonically_increasing_id())
+        tip = tip
+        .withColumn("date", col("date").cast(TimestampType))
+
+        tip = tip
+        .withColumnRenamed("user_id", "fk_user_id")
+        // Dataframe Tip (tip_id, text, date, fk_user_id)
+        tip = tip
+        .select("tip_id","text","date","fk_user_id")
+
+        // Affichage du dataframe Tip
+        tip.printSchema()
+
+        import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
+        val dialect = new OracleDialect
+        JdbcDialects.registerDialect(dialect)
+        spark.stop()
+    }
+
+
+class OracleDialect extends JdbcDialect {
+override def getJDBCType(dt: DataType): Option[JdbcType] = dt match {
+    case BooleanType => Some(JdbcType("NUMBER(1)", java.sql.Types.INTEGER))
+    case IntegerType => Some(JdbcType("NUMBER(10)", java.sql.Types.INTEGER))
+    case LongType => Some(JdbcType("NUMBER(19)", java.sql.Types.BIGINT))
+    case FloatType => Some(JdbcType("NUMBER(19, 4)", java.sql.Types.FLOAT))
+    case DoubleType => Some(JdbcType("NUMBER(19, 4)", java.sql.Types.DOUBLE))
+    case ByteType => Some(JdbcType("NUMBER(3)", java.sql.Types.SMALLINT))
+    case ShortType => Some(JdbcType("NUMBER(5)", java.sql.Types.SMALLINT))
+    case StringType => Some(JdbcType("VARCHAR2(4000)", java.sql.Types.VARCHAR))
+    case DateType => Some(JdbcType("DATE", java.sql.Types.DATE))
+    //Ligne ajoutée pour timestamp
+    case TimestampType => Some(JdbcType("TIMESTAMP",java.sql.Types.TIMESTAMP))
+    case _ => None
+}
+override def canHandle(url: String): Boolean = url.startsWith("jdbc:oracle")
+}
 }
