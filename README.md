@@ -12,5 +12,5 @@ sbt/bin/sbt clean compile
 
 - exécuter le projet 
 ```sh
-sbt/bin/sbt clean compile
+sbt/bin/sbt clean run
 ```
