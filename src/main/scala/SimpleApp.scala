@@ -10,7 +10,7 @@ object App {
         // Initialisation de Spark
         val spark = SparkSession.builder.appName("ETL").master("local[4]").getOrCreate()
 
-
+        ///********** FICHIER CSV **********///
         // lecture du fichier tip.csv
         var tip = spark.read
         .option("header",true)
@@ -24,13 +24,70 @@ object App {
 
         tip = tip
         .withColumnRenamed("user_id", "fk_user_id")
-        // Dataframe Tip (tip_id, text, date, fk_user_id)
+        // DATAFRAME Tip
         tip = tip
         .select("tip_id","text","date","fk_user_id")
 
         // Affichage du dataframe Tip
         tip.printSchema()
 
+        ///********** FICHIER JSON **********///
+        // Lecture du fichier business.json
+        var business_info = spark.read.json("data/yelp_academic_dataset_business.json").cache()
+
+        business_info = spark.read.json(businessFile).cache()
+
+        // DATAFRAME Business
+        var business = business_info.select("business_id","name","address","city","state","postal_code","review_count","stars","is_open","latitude","longitude")
+
+        business.printSchema()
+
+        var categories_info = business_info
+            .withColumn("categories", explode(org.apache.spark.sql.functions.split(col("categories"), ",")))
+        
+        categories_info = categories_info
+            .withColumnRenamed("categories", "category_name")
+      
+        categories_info = categories_info
+            .filter(col("category_name").notEqual("None"))
+      
+        categories_info = categories_info
+            .drop(col("categories"))
+
+        // DATAFRAME Categorie
+        var categories = categories_info.select("business_id", "category_name")
+
+        // Supression des doublons
+        // categories = categories.dropDuplicates()
+        
+        //Identifiant parking_id, id qui va incrémenter automatiquement
+        categories = categories.withColumn("category_id", monotonically_increasing_id())
+
+        categories = categories.select("category_id","category_name")
+
+        // Lecture du fichier checkin.json
+        var checkin_info = spark.read.json("data/yelp_academic_dataset_checkin.json").cache()
+
+        var checkin = checkin_info
+            .withColumn("checkin_id", monotonically_increasing_id())
+
+        // Paramètres de la connexion BD
+        import java.util.Properties
+        // BD ORACLE
+        Class.forName("oracle.jdbc.driver.OracleDriver")
+        val urlOracle = "jdbc:oracle:thin:@stendhal:1521:enss2023"
+        val connectionPropertiesOracle = new Properties()
+        connectionPropertiesOracle.setProperty("driver", "oracle.jdbc.driver.OracleDriver")
+        connectionPropertiesOracle.setProperty("user", "ad578175")
+        connectionPropertiesOracle.setProperty("password", "ad578175")
+
+        // BD POSTGRESQL
+        val urlPostgreSQL = "jdbc:postgresql://stendhal:5432/tpid2020"
+        val connectionProporetiesPostgreSQL = new Properties()
+        connectionProporetiesPostgreSQL.setProperty("driver", "org.postgresql.Driver")
+        connectionProporetiesPostgreSQL.put("user", "tpid")
+        connectionProporetiesPostgreSQL.put("password", "tpid")
+        
         import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
         val dialect = new OracleDialect
         JdbcDialects.registerDialect(dialect)
