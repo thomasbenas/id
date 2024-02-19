@@ -35,13 +35,30 @@ object App {
         // Lecture du fichier business.json
         var business_info = spark.read.json("data/yelp_academic_dataset_business.json").cache()
 
-        business_info = spark.read.json(businessFile).cache()
-
         // DATAFRAME Business
-        var business = business_info.select("business_id","name","address","city","state","postal_code","review_count","stars","is_open","latitude","longitude")
+        var dim_business = business_info
+            .select("business_id",
+            "name",
+            "address",
+            "city",
+            "state",
+            "postal_code",
+            "review_count",
+            "stars",
+            "is_open",
+            "latitude",
+            "longitude",
+            "hours.Monday",
+            "hours.Tuesday",
+            "hours.Wednesday",
+            "hours.Thursday",
+            "hours.Friday",
+            "hours.Saturday",
+            "hours.Sunday")
 
         business.printSchema()
 
+        // DATAFRAME Category
         var categories_info = business_info
             .withColumn("categories", explode(org.apache.spark.sql.functions.split(col("categories"), ",")))
         
@@ -54,9 +71,77 @@ object App {
         categories_info = categories_info
             .drop(col("categories"))
 
-        // DATAFRAME Attributes
-        var categories = categories_info.select("business_id", "category_name")
+        // DATAFRAME Service
+        var dim_service = business_info
+            .select("business_id",
+            "attributes.ByAppointmentOnly",
+            "attributes.OutdoorSeating",
+            "attributes.BusinessAcceptsCreditCards",
+            "attributes.WiFi")
 
+        //Conversion des champs en boolean
+        dim_service = dim_service
+            .withColumn("ByAppointmentOnly", col("ByAppointmentOnly").cast(BooleanType))
+            .withColumn("OutdoorSeating", col("OutdoorSeating").cast(BooleanType))
+            .withColumn("BusinessAcceptsCreditCards", col("BusinessAcceptsCreditCards").cast(BooleanType))
+
+        //On nettoie la donnée de WiFi pour avoir seulement les termes 
+        dim_service = dim_service
+            .withColumn("WiFi", regexp_extract(col("WiFi"), "(?:u')?(.*?)'", 1))
+
+        // Remplacement des valeurs null par false
+        dim_service = dim_service
+            .na
+            .fill(false)
+
+        //Création de l'id service_id
+
+        // DATAFRAME Accessibility
+        var dim_accessibility = business_info
+            .select("business_id",
+            "attributes.GoodForKids",
+            "attributes.WheelchairAccessible",
+            "attributes.BikeParking")
+
+        //Conversion des champs en boolean
+        dim_accessibility = dim_accessibility
+            .withColumn("GoodForKids", col("GoodForKids").cast(BooleanType))
+            .withColumn("WheelchairAccessible", col("WheelchairAccessible").cast(BooleanType))
+            .withColumn("BikeParking", col("BikeParking").cast(BooleanType))
+
+        // Remplacement des valeurs null par false
+        dim_accessibility = dim_accessibility
+            .na
+            .fill(false)
+
+        //Création de l'id accessibility_id
+
+        // DATAFRAME Restaurant
+        var dim_restaurant = business_info
+            .select("business_id",
+            "attributes.RestaurantsPriceRange2",
+            "attributes.RestaurantsGoodForGroups",
+            "attributes.RestaurantsTakeOut",
+            "attributes.RestaurantsReservations",
+            "attributes.RestaurantsDelivery",
+            "attributes.RestaurantsTableService")
+
+        //Conversion des champs en boolean
+        dim_restaurant = dim_restaurant
+            .withColumn("RestaurantsPriceRange2", col("RestaurantsPriceRange2").cast(BooleanType))
+            .withColumn("RestaurantsGoodForGroups", col("RestaurantsGoodForGroups").cast(BooleanType))
+            .withColumn("RestaurantsTakeOut", col("RestaurantsTakeOut").cast(BooleanType))
+            .withColumn("RestaurantsReservations", col("RestaurantsReservations").cast(BooleanType))
+            .withColumn("RestaurantsDelivery", col("RestaurantsDelivery").cast(BooleanType))
+            .withColumn("RestaurantsTableService", col("RestaurantsTableService").cast(BooleanType))
+
+        // Remplacement des valeurs null par false
+        dim_restaurant = dim_restaurant
+            .na
+            .fill(false)
+
+        //Création de l'id restaurant_id
+        
         // Supression des doublons
         // categories = categories.dropDuplicates()
         
