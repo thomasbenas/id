@@ -188,7 +188,32 @@ object App {
         var checkin = checkin_info
             .withColumn("checkin_id", monotonically_increasing_id())
 
-        
+        // Chargement de la table user de la base de données PostgreSQL
+        val userDF = spark.read
+            .jdbc(urlPostgreSQL, "yelp.user", connectionProporetiesPostgreSQL)
+
+        // Chargement de la table elite de la base de données PostgreSQL
+        val eliteDF = spark.read
+            .jdbc(urlPostgreSQL, "yelp.elite", connectionProporetiesPostgreSQL)
+
+        // Jointure des DataFrames sur la colonne user_id
+        val eliteMembersDF = eliteDF
+            .join(userDF, "user_id") // Utilisez "user_id" comme clé de jointure
+
+        // Sélection et transformation des colonnes pour la dimension Elite
+        val dimension_elite = eliteMembersDF
+            .select(
+                eliteDF.col("user_id"),
+                eliteDF.col("year"),
+                userDF.col("average_stars"),
+                userDF.col("useful")
+            )
+            .withColumn("elite_id", monotonically_increasing_id())
+
+        // Affichage du schéma pour vérification
+        dimension_elite.printSchema()
+
+
 
         spark.stop()
     }
