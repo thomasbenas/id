@@ -216,7 +216,6 @@ object App {
                 userDF.col("average_stars"),
                 userDF.col("useful")
             )
-            .withColumn("elite_id", monotonically_increasing_id())
 
         // Affichage du schéma pour vérification
         dimension_elite.printSchema()
