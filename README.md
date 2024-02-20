@@ -14,3 +14,7 @@ sbt/bin/sbt clean compile
 ```sh
 sbt/bin/sbt clean run
 ```
+
+## Schéma du DW
+![schéma DW](schema.png).
+
