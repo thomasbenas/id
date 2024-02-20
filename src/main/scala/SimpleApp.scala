@@ -28,9 +28,31 @@ object App {
         connectionPropertiesOracle.setProperty("driver", "oracle.jdbc.driver.OracleDriver")
         connectionPropertiesOracle.setProperty("user", "ad578175")
         connectionPropertiesOracle.setProperty("password", "ad578175")
+   
       
         val dialect = new OracleDialect
         JdbcDialects.registerDialect(dialect)
+
+        ///********** FICHIER CSV **********///
+        // lecture du fichier tip.csv
+        var tip = spark.read
+        .option("header",true)
+        .csv("dataset/yelp_academic_dataset_tip.csv")
+        .select("user_id","date","text")
+
+        tip = tip
+            .withColumn("tip_id", monotonically_increasing_id())
+        tip = tip
+        .withColumn("date", col("date").cast(TimestampType))
+
+        tip = tip
+        .withColumnRenamed("user_id", "fk_user_id")
+        // DATAFRAME Tip
+        tip = tip
+        .select("tip_id","text","date","fk_user_id")
+
+        // Affichage du dataframe Tip
+        tip.printSchema()
 
         ///********** FICHIER JSON **********///
         // Lecture du fichier business.json
@@ -59,6 +81,12 @@ object App {
 
         // Affichage du dataframe dim_business
         dim_business.printSchema()
+        dim_business.show()
+
+        // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
+        dim_business.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "dimension_business", connectionPropertiesOracle)
 
         // DATAFRAME Category
         var categories_info = business_info
@@ -147,6 +175,19 @@ object App {
             .na
             .fill(false)
 
+        //Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
+        dim_service.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "dimension_service", connectionPropertiesOracle)
+
+        dim_accessibility.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "dimension_accessibility", connectionPropertiesOracle)
+
+        dim_restaurant.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "dimension_restaurant", connectionPropertiesOracle)       
+
         //Création de l'id restaurant_id
         
         // Supression des doublons
@@ -189,6 +230,12 @@ object App {
 
         // Affichage du schéma pour vérification
         dimension_elite.printSchema()
+        dimension_elite.show()
+
+        // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
+        dimension_elite.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "dimension_elite", connectionPropertiesOracle)
 
         spark.stop()
     }
