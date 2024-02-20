@@ -14,7 +14,7 @@ object App {
         // lecture du fichier tip.csv
         var tip = spark.read
         .option("header",true)
-        .csv("data/yelp_academic_dataset_tip.csv")
+        .csv("dataset/yelp_academic_dataset_tip.csv")
         .select("user_id","date","text")
 
         tip = tip
@@ -33,7 +33,7 @@ object App {
 
         ///********** FICHIER JSON **********///
         // Lecture du fichier business.json
-        var business_info = spark.read.json("data/yelp_academic_dataset_business.json").cache()
+        var business_info = spark.read.json("dataset/yelp_academic_dataset_business.json").cache()
 
         // DATAFRAME Business
         var dim_business = business_info
@@ -56,20 +56,26 @@ object App {
             "hours.Saturday",
             "hours.Sunday")
 
-        business.printSchema()
+        // Affichage du dataframe dim_business
+        dim_business.printSchema()
 
         // DATAFRAME Category
         var categories_info = business_info
             .withColumn("categories", explode(org.apache.spark.sql.functions.split(col("categories"), ",")))
-        
+
         categories_info = categories_info
             .withColumnRenamed("categories", "category_name")
-      
+
         categories_info = categories_info
             .filter(col("category_name").notEqual("None"))
-      
-        categories_info = categories_info
-            .drop(col("categories"))
+
+        // Suppression de la ligne erronée qui tentait de supprimer une colonne non existante
+        // categories_info = categories_info.drop(col("categories"))
+
+        // Ajout d'un ID unique à chaque catégorie
+        categories_info = categories_info.withColumn("category_id", monotonically_increasing_id())
+
+        categories_info = categories_info.select("category_id", "category_name")
 
         // DATAFRAME Service
         var dim_service = business_info
@@ -143,18 +149,23 @@ object App {
         //Création de l'id restaurant_id
         
         // Supression des doublons
-        // categories = categories.dropDuplicates()
-        
-        //Identifiant parking_id, id qui va incrémenter automatiquement
-        categories = categories.withColumn("category_id", monotonically_increasing_id())
+        categories_info = categories_info.dropDuplicates()
 
-        categories = categories.select("category_id","category_name")
+        // Identifiant category_id, id qui va incrémenter automatiquement
+        categories_info = categories_info.withColumn("category_id", monotonically_increasing_id())
+
+        // Sélection des colonnes nécessaires
+        categories_info = categories_info.select("category_id", "category_name")
+
 
         // Lecture du fichier checkin.json
-        var checkin_info = spark.read.json("data/yelp_academic_dataset_checkin.json").cache()
+        var checkin_info = spark.read.json("dataset/yelp_academic_dataset_checkin.json").cache()
 
         var checkin = checkin_info
             .withColumn("checkin_id", monotonically_increasing_id())
+
+
+        
 
         // Paramètres de la connexion BD
         import java.util.Properties
