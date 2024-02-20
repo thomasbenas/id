@@ -12,7 +12,6 @@ object App {
         // Initialisation de Spark
         val spark = SparkSession.builder.appName("ETL").master("local[4]").getOrCreate()
 
-
         // Paramètres de la connexion BD
         // BD POSTGRESQL
         val urlPostgreSQL = "jdbc:postgresql://stendhal:5432/tpid2020"
@@ -29,31 +28,9 @@ object App {
         connectionPropertiesOracle.setProperty("driver", "oracle.jdbc.driver.OracleDriver")
         connectionPropertiesOracle.setProperty("user", "ad578175")
         connectionPropertiesOracle.setProperty("password", "ad578175")
-   
       
         val dialect = new OracleDialect
         JdbcDialects.registerDialect(dialect)
-
-        ///********** FICHIER CSV **********///
-        // lecture du fichier tip.csv
-        var tip = spark.read
-        .option("header",true)
-        .csv("dataset/yelp_academic_dataset_tip.csv")
-        .select("user_id","date","text")
-
-        tip = tip
-            .withColumn("tip_id", monotonically_increasing_id())
-        tip = tip
-        .withColumn("date", col("date").cast(TimestampType))
-
-        tip = tip
-        .withColumnRenamed("user_id", "fk_user_id")
-        // DATAFRAME Tip
-        tip = tip
-        .select("tip_id","text","date","fk_user_id")
-
-        // Affichage du dataframe Tip
-        tip.printSchema()
 
         ///********** FICHIER JSON **********///
         // Lecture du fichier business.json
@@ -212,8 +189,6 @@ object App {
 
         // Affichage du schéma pour vérification
         dimension_elite.printSchema()
-
-
 
         spark.stop()
     }
