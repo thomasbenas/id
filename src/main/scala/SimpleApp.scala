@@ -6,6 +6,7 @@ import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
 import org.apache.spark.sql.types._
 import java.util.Properties
 import org.apache.spark.sql.jdbc.{JdbcDialect, JdbcDialects, JdbcType}
+import org.apache.spark.sql.functions.{col, when, regexp_extract}
 
 object App {
     def main(args: Array[String]): Unit = {
@@ -29,30 +30,8 @@ object App {
         connectionPropertiesOracle.setProperty("user", "ad578175")
         connectionPropertiesOracle.setProperty("password", "ad578175")
    
-      
         val dialect = new OracleDialect
         JdbcDialects.registerDialect(dialect)
-
-        ///********** FICHIER CSV **********///
-        // lecture du fichier tip.csv
-        var tip = spark.read
-        .option("header",true)
-        .csv("dataset/yelp_academic_dataset_tip.csv")
-        .select("user_id","date","text")
-
-        tip = tip
-            .withColumn("tip_id", monotonically_increasing_id())
-        tip = tip
-        .withColumn("date", col("date").cast(TimestampType))
-
-        tip = tip
-        .withColumnRenamed("user_id", "fk_user_id")
-        // DATAFRAME Tip
-        tip = tip
-        .select("tip_id","text","date","fk_user_id")
-
-        // Affichage du dataframe Tip
-        tip.printSchema()
 
         ///********** FICHIER JSON **********///
         // Lecture du fichier business.json
@@ -92,19 +71,23 @@ object App {
         var categories_info = business_info
             .withColumn("categories", explode(org.apache.spark.sql.functions.split(col("categories"), ",")))
 
-        categories_info = categories_info
-            .withColumnRenamed("categories", "category_name")
-
-        categories_info = categories_info
-            .filter(col("category_name").notEqual("None"))
-
-        // Suppression de la ligne erronée qui tentait de supprimer une colonne non existante
-        // categories_info = categories_info.drop(col("categories"))
+        // Suppression des doublons basée sur le nom de la catégorie
+        categories_info = categories_info.distinct()
 
         // Ajout d'un ID unique à chaque catégorie
         categories_info = categories_info.withColumn("category_id", monotonically_increasing_id())
 
+        categories_info = categories_info.withColumnRenamed("categories", "category_name")
+
+        // Sélection des colonnes nécessaires
         categories_info = categories_info.select("category_id", "category_name")
+        categories_info = categories_info.dropDuplicates(Seq("category_name"))
+
+        //Creation de la table dimension_category
+        categories_info.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "dimension_category", connectionPropertiesOracle)
+
 
         // DATAFRAME Service
         var dim_service = business_info
@@ -120,14 +103,21 @@ object App {
             .withColumn("OutdoorSeating", col("OutdoorSeating").cast(BooleanType))
             .withColumn("BusinessAcceptsCreditCards", col("BusinessAcceptsCreditCards").cast(BooleanType))
 
+        //Renommage de la colonne
+        dim_service = dim_service
+            .withColumnRenamed("WiFi", "Wifi")
+
         //On nettoie la donnée de WiFi pour avoir seulement les termes 
         dim_service = dim_service
-            .withColumn("WiFi", regexp_extract(col("WiFi"), "(?:u')?(.*?)'", 1))
+            .withColumn("Wifi", regexp_extract(col("Wifi"), "(?:u')?(.*?)'", 1))
 
-        // Remplacement des valeurs null par false
+        // Remplacer les valeurs null dans la colonne "Wifi" par "not indicated"
         dim_service = dim_service
-            .na
-            .fill(false)
+            .withColumn("Wifi", when(col("Wifi").isNull, lit("undefined")).otherwise(col("Wifi")))
+
+        // Pour les autres champs, si vous souhaitez toujours remplacer null par false
+        dim_service = dim_service
+            .na.fill(false, Seq("ByAppointmentOnly", "OutdoorSeating", "BusinessAcceptsCreditCards"))
 
         //Création de l'id service_id
 
