@@ -103,7 +103,7 @@ object App {
             .withColumn("OutdoorSeating", col("OutdoorSeating").cast(BooleanType))
             .withColumn("BusinessAcceptsCreditCards", col("BusinessAcceptsCreditCards").cast(BooleanType))
 
-        //Renommage de la colonne
+        //Renommage de la colonne wifi
         dim_service = dim_service
             .withColumnRenamed("WiFi", "Wifi")
 
@@ -118,8 +118,6 @@ object App {
         // Pour les autres champs, si vous souhaitez toujours remplacer null par false
         dim_service = dim_service
             .na.fill(false, Seq("ByAppointmentOnly", "OutdoorSeating", "BusinessAcceptsCreditCards"))
-
-        //Création de l'id service_id
 
         // DATAFRAME Accessibility
         var dim_accessibility = business_info
@@ -138,8 +136,6 @@ object App {
         dim_accessibility = dim_accessibility
             .na
             .fill(false)
-
-        //Création de l'id accessibility_id
 
         // DATAFRAME Restaurant
         var dim_restaurant = business_info
@@ -177,8 +173,6 @@ object App {
         dim_restaurant.write
             .mode(SaveMode.Overwrite)
             .jdbc(urlOracle, "dimension_restaurant", connectionPropertiesOracle)       
-
-        //Création de l'id restaurant_id
         
         // Supression des doublons
         categories_info = categories_info.dropDuplicates()
@@ -216,7 +210,6 @@ object App {
                 userDF.col("average_stars"),
                 userDF.col("useful")
             )
-            .withColumn("elite_id", monotonically_increasing_id())
 
         // Affichage du schéma pour vérification
         dimension_elite.printSchema()
@@ -226,6 +219,9 @@ object App {
         dimension_elite.write
             .mode(SaveMode.Overwrite)
             .jdbc(urlOracle, "dimension_elite", connectionPropertiesOracle)
+
+        // Ecriture de la table de faits dans la base de données Oracle
+
 
         spark.stop()
     }
