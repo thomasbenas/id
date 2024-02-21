@@ -63,31 +63,40 @@ object App {
         dim_business.show()
 
         // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
-        dim_business.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "dimension_business", connectionPropertiesOracle)
+        //dim_business.write
+        //    .mode(SaveMode.Overwrite)
+        //    .jdbc(urlOracle, "business", connectionPropertiesOracle)
 
         // DATAFRAME Category
-        var categories_info = business_info
+        var dim_category = business_info
             .withColumn("categories", explode(org.apache.spark.sql.functions.split(col("categories"), ",")))
 
         // Suppression des doublons basée sur le nom de la catégorie
-        categories_info = categories_info.distinct()
+        dim_category = dim_category.distinct()
 
         // Ajout d'un ID unique à chaque catégorie
-        categories_info = categories_info.withColumn("category_id", monotonically_increasing_id())
+        dim_category = dim_category.withColumn("category_id", monotonically_increasing_id())
 
-        categories_info = categories_info.withColumnRenamed("categories", "category_name")
+        dim_category = dim_category.withColumnRenamed("categories", "category_name")
 
         // Sélection des colonnes nécessaires
-        categories_info = categories_info.select("category_id", "category_name")
-        categories_info = categories_info.dropDuplicates(Seq("category_name"))
+        dim_category = dim_category.select("category_id", "category_name")
+        dim_category = dim_category.dropDuplicates(Seq("category_name"))
 
         //Creation de la table dimension_category
-        categories_info.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "dimension_category", connectionPropertiesOracle)
+        //dim_category.write
+        //    .mode(SaveMode.Overwrite)
+        //    .jdbc(urlOracle, "category", connectionPropertiesOracle)
 
+         val business_category = business_info
+            .select("business_id", "categories")
+            .withColumn("category_name", explode(split(col("categories"), ",")))
+            .join(dim_business, "business_id")
+            .join(dim_category, "category_name")
+            .select("business_id", "category_id")
+
+        // Écrivez la table de liaison business_category dans la base de données Oracle
+        business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
 
         // DATAFRAME Service
         var dim_service = business_info
@@ -162,28 +171,18 @@ object App {
             .fill(false)
 
         //Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
-        dim_service.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "dimension_service", connectionPropertiesOracle)
+        /*dim_service.write
+        /    .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "service", connectionPropertiesOracle)
 
         dim_accessibility.write
             .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "dimension_accessibility", connectionPropertiesOracle)
+            .jdbc(urlOracle, "accessibility", connectionPropertiesOracle)
 
         dim_restaurant.write
             .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "dimension_restaurant", connectionPropertiesOracle)       
-        
-        // Supression des doublons
-        categories_info = categories_info.dropDuplicates()
-
-        // Identifiant category_id, id qui va incrémenter automatiquement
-        categories_info = categories_info.withColumn("category_id", monotonically_increasing_id())
-
-        // Sélection des colonnes nécessaires
-        categories_info = categories_info.select("category_id", "category_name")
-
-
+            .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
+        */
         // Lecture du fichier checkin.json
         var checkin_info = spark.read.json("dataset/yelp_academic_dataset_checkin.json").cache()
 
@@ -213,15 +212,14 @@ object App {
 
         // Affichage du schéma pour vérification
         dimension_elite.printSchema()
-        dimension_elite.show()
+        //dimension_elite.show()
 
         // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
         dimension_elite.write
             .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "dimension_elite", connectionPropertiesOracle)
+            .jdbc(urlOracle, "elite", connectionPropertiesOracle)
 
         // Ecriture de la table de faits dans la base de données Oracle
-
 
         spark.stop()
     }
