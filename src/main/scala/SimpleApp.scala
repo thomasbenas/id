@@ -197,6 +197,10 @@ object App {
         val eliteDF = spark.read
             .jdbc(urlPostgreSQL, "yelp.elite", connectionProporetiesPostgreSQL)
 
+        // Chargement de la table review de la base de données PostgreSQL
+        val reviewDF = spark.read
+            .jdbc(urlPostgreSQL, "yelp.review", connectionProporetiesPostgreSQL)
+
         // Jointure des DataFrames sur la colonne user_id
         val eliteMembersDF = eliteDF
             .join(userDF, "user_id") // Utilisez "user_id" comme clé de jointure
@@ -209,18 +213,53 @@ object App {
                 userDF.col("average_stars"),
                 userDF.col("useful")
             )
+        
+        // // Selection des reviews des utilisateurs élites
+        // val dim_review = reviewDF
+        //     .join(eliteDF, "user_id")
+        //     .select(
+        //         reviewDF.col("review_id"),
+        //         reviewDF.col("user_id"),
+        //         reviewDF.col("business_id"),
+        //         reviewDF.col("stars"),
+        //         reviewDF.col("useful"),
+        //         reviewDF.col("text"),
+        //         reviewDF.col("date")
+        //     )
 
-        // Affichage du schéma pour vérification
-        //dimension_elite.printSchema()
-        //dimension_elite.show()
 
-        // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
-        dimension_elite.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "elite", connectionPropertiesOracle)
+        // // Affichage du schéma pour vérification
+        // //dimension_elite.printSchema()
+        // //dimension_elite.show()
 
-        // Ecriture de la table de faits dans la base de données Oracle
+        // dim_review.show()
 
+        // // Ecriture du DataFrame dans la table review de la base de données Oracle
+        // dim_review.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "review", connectionPropertiesOracle)
+
+        // // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
+        // // dimension_elite.write
+        // //     .mode(SaveMode.Overwrite)
+        // //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
+
+        // //  Ecriture de la table de faits dans la base de données Oracle avec buisness_id, review_id, category_id
+        // val fact_review = reviewDF
+        //     .select(
+        //         reviewDF.col("review_id"),
+        //         business_category.col("business_id"),
+        //         dim_category.col("category_id"),
+        //     )
+        
+        // fact_review.show()
+
+        // // Ecriture du DataFrame dans la table tendency de la base de données Oracle
+        // fact_review.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
+
+        // Fermeture de la session Spark
         spark.stop()
     }
 
