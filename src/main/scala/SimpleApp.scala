@@ -59,8 +59,8 @@ object App {
             "hours.Sunday")
 
         // Affichage du dataframe dim_business
-        dim_business.printSchema()
-        dim_business.show()
+        //dim_business.printSchema()
+        //dim_business.show()
 
         // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
         //dim_business.write
@@ -211,7 +211,7 @@ object App {
             )
 
         // Affichage du schéma pour vérification
-        dimension_elite.printSchema()
+        //dimension_elite.printSchema()
         //dimension_elite.show()
 
         // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
