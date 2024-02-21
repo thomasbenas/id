@@ -109,9 +109,9 @@ object App {
 
         //On nettoie la donnée de WiFi pour avoir seulement les termes 
         dim_service = dim_service
-            .withColumn("Wifi", regexp_extract(col("Wifi"), "(?:u')?(.*?)'", 1))
+            .withColumn("Wifi", regexp_extract(col("Wifi"), "^(?:u')?'?([^']*)'?$", 1))
 
-        // Remplacer les valeurs null dans la colonne "Wifi" par "not indicated"
+        // Remplacer les valeurs null dans la colonne "Wifi" par "undefined"
         dim_service = dim_service
             .withColumn("Wifi", when(col("Wifi").isNull, lit("undefined")).otherwise(col("Wifi")))
 
