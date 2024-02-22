@@ -21,7 +21,6 @@ object App {
         connectionProporetiesPostgreSQL.put("user", "tpid")
         connectionProporetiesPostgreSQL.put("password", "tpid")
         
-
         // BD ORACLE
         Class.forName("oracle.jdbc.driver.OracleDriver")
         val urlOracle = "jdbc:oracle:thin:@stendhal:1521:enss2023"
@@ -58,15 +57,6 @@ object App {
             "hours.Saturday",
             "hours.Sunday")
 
-        // Affichage du dataframe dim_business
-        //dim_business.printSchema()
-        //dim_business.show()
-
-        // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
-        dim_business.write
-           .mode(SaveMode.Overwrite)
-           .jdbc(urlOracle, "business", connectionPropertiesOracle)
-
         // DATAFRAME Category
         var dim_category = business_info
             .withColumn("categories", explode(org.apache.spark.sql.functions.split(col("categories"), ",")))
@@ -83,20 +73,12 @@ object App {
         dim_category = dim_category.select("category_id", "category_name")
         dim_category = dim_category.dropDuplicates(Seq("category_name"))
 
-        //Creation de la table dimension_category
-        dim_category.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "category", connectionPropertiesOracle)
-
-         val business_category = business_info
+        val business_category = business_info
             .select("business_id", "categories")
             .withColumn("category_name", explode(split(col("categories"), ",")))
             .join(dim_business, "business_id")
             .join(dim_category, "category_name")
             .select("business_id", "category_id")
-
-        // Écrivez la table de liaison business_category dans la base de données Oracle
-        business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
 
         // DATAFRAME Service
         var dim_service = business_info
@@ -168,24 +150,11 @@ object App {
             .withColumn("RestaurantsDelivery", col("RestaurantsDelivery").cast(BooleanType))
             .withColumn("RestaurantsTableService", col("RestaurantsTableService").cast(BooleanType))
 
-        // Remplacement des valeurs null par false
+        // // Remplacement des valeurs null par false
         dim_restaurant = dim_restaurant
             .na
             .fill(false)
 
-        //Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
-        dim_service.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "service", connectionPropertiesOracle)
-
-        dim_accessibility.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "accessibility", connectionPropertiesOracle)
-
-        dim_restaurant.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
-        
         // Lecture du fichier checkin.json
         var checkin_info = spark.read.json("dataset/yelp_academic_dataset_checkin.json").cache()
 
@@ -233,12 +202,35 @@ object App {
         // Filtrer les avis avec un texte supérieur à 4000 caractères
         val dim_review_filtered = dim_review.filter(length(dim_review("text")) <= 4000)
 
+       
+        
+        ///********** ECRITURE DES DONNEES **********///
 
-        // // Affichage du schéma pour vérification
-        // dimension_elite.printSchema()
-        // dimension_elite.show()
+        // // Creation de la table dimension_category
+        // dim_category.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "category", connectionPropertiesOracle)
 
-        // dim_review.show()
+        // // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
+        // dim_business.write
+        //    .mode(SaveMode.Overwrite)
+        //    .jdbc(urlOracle, "business", connectionPropertiesOracle)
+
+        // // Ecriture du dataframe business_category dans la table business_category de la base de données Oracle
+        //business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
+
+        // // Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
+        // dim_service.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "service", connectionPropertiesOracle)
+
+        // dim_accessibility.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "accessibility", connectionPropertiesOracle)
+
+        // dim_restaurant.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
 
         // // Ecriture du DataFrame dans la table review de la base de données Oracle
         // dim_review_filtered.write
@@ -250,6 +242,7 @@ object App {
         //     .mode(SaveMode.Overwrite)
         //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
 
+      
 
         // Fermeture de la session Spark
         spark.stop()
