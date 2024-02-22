@@ -106,8 +106,9 @@ object App {
             "attributes.BusinessAcceptsCreditCards",
             "attributes.WiFi")
 
-        //Conversion des champs en boolean
+        //Conversion des champs en boolean + id
         dim_service = dim_service
+            .withColumn("service_id", monotonically_increasing_id())
             .withColumn("ByAppointmentOnly", col("ByAppointmentOnly").cast(BooleanType))
             .withColumn("OutdoorSeating", col("OutdoorSeating").cast(BooleanType))
             .withColumn("BusinessAcceptsCreditCards", col("BusinessAcceptsCreditCards").cast(BooleanType))
@@ -135,8 +136,9 @@ object App {
             "attributes.WheelchairAccessible",
             "attributes.BikeParking")
 
-        //Conversion des champs en boolean
+        //Conversion des champs en boolean + id
         dim_accessibility = dim_accessibility
+            .withColumn("accessibility_id", monotonically_increasing_id())
             .withColumn("GoodForKids", col("GoodForKids").cast(BooleanType))
             .withColumn("WheelchairAccessible", col("WheelchairAccessible").cast(BooleanType))
             .withColumn("BikeParking", col("BikeParking").cast(BooleanType))
@@ -158,6 +160,7 @@ object App {
 
         //Conversion des champs en boolean
         dim_restaurant = dim_restaurant
+            .withColumn("restaurant_id", monotonically_increasing_id())
             .withColumn("RestaurantsPriceRange2", col("RestaurantsPriceRange2").cast(BooleanType))
             .withColumn("RestaurantsGoodForGroups", col("RestaurantsGoodForGroups").cast(BooleanType))
             .withColumn("RestaurantsTakeOut", col("RestaurantsTakeOut").cast(BooleanType))
@@ -247,20 +250,6 @@ object App {
         //     .mode(SaveMode.Overwrite)
         //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
 
-        //  Ecriture de la table de faits dans la base de données Oracle avec buisness_id, review_id, category_id
-        val fact_review = reviewDF
-            .select(
-                reviewDF.col("review_id"),
-                business_category.col("business_id"),
-                dim_category.col("category_id"),
-            )
-        
-        fact_review.show()
-
-        // // Ecriture du DataFrame dans la table tendency de la base de données Oracle
-        fact_review.write
-            .mode(SaveMode.Overwrite)
-            .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
 
         // Fermeture de la session Spark
         spark.stop()
