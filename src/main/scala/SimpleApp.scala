@@ -63,9 +63,9 @@ object App {
         //dim_business.show()
 
         // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
-        //dim_business.write
-        //    .mode(SaveMode.Overwrite)
-        //    .jdbc(urlOracle, "business", connectionPropertiesOracle)
+        dim_business.write
+           .mode(SaveMode.Overwrite)
+           .jdbc(urlOracle, "business", connectionPropertiesOracle)
 
         // DATAFRAME Category
         var dim_category = business_info
@@ -84,9 +84,9 @@ object App {
         dim_category = dim_category.dropDuplicates(Seq("category_name"))
 
         //Creation de la table dimension_category
-        //dim_category.write
-        //    .mode(SaveMode.Overwrite)
-        //    .jdbc(urlOracle, "category", connectionPropertiesOracle)
+        dim_category.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "category", connectionPropertiesOracle)
 
          val business_category = business_info
             .select("business_id", "categories")
@@ -171,8 +171,8 @@ object App {
             .fill(false)
 
         //Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
-        /*dim_service.write
-        /    .mode(SaveMode.Overwrite)
+        dim_service.write
+            .mode(SaveMode.Overwrite)
             .jdbc(urlOracle, "service", connectionPropertiesOracle)
 
         dim_accessibility.write
@@ -182,7 +182,7 @@ object App {
         dim_restaurant.write
             .mode(SaveMode.Overwrite)
             .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
-        */
+        
         // Lecture du fichier checkin.json
         var checkin_info = spark.read.json("dataset/yelp_academic_dataset_checkin.json").cache()
 
@@ -214,50 +214,53 @@ object App {
                 userDF.col("useful")
             )
         
-        // // Selection des reviews des utilisateurs élites
-        // val dim_review = reviewDF
-        //     .join(eliteDF, "user_id")
-        //     .select(
-        //         reviewDF.col("review_id"),
-        //         reviewDF.col("user_id"),
-        //         reviewDF.col("business_id"),
-        //         reviewDF.col("stars"),
-        //         reviewDF.col("useful"),
-        //         reviewDF.col("text"),
-        //         reviewDF.col("date")
-        //     )
+        // Selection des reviews des utilisateurs élites
+        val dim_review = reviewDF
+            .join(eliteDF, "user_id")
+            .select(
+                reviewDF.col("review_id"),
+                reviewDF.col("user_id"),
+                reviewDF.col("business_id"),
+                reviewDF.col("stars"),
+                reviewDF.col("useful"),
+                reviewDF.col("text"),
+                reviewDF.col("date")
+            )
+
+        // Filtrer les avis avec un texte supérieur à 4000 caractères
+        val dim_review_filtered = dim_review.filter(length(dim_review("text")) <= 4000)
 
 
         // // Affichage du schéma pour vérification
-        // //dimension_elite.printSchema()
-        // //dimension_elite.show()
+        // dimension_elite.printSchema()
+        // dimension_elite.show()
 
         // dim_review.show()
 
         // // Ecriture du DataFrame dans la table review de la base de données Oracle
-        // dim_review.write
+        // dim_review_filtered.write
         //     .mode(SaveMode.Overwrite)
         //     .jdbc(urlOracle, "review", connectionPropertiesOracle)
 
         // // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
-        // // dimension_elite.write
-        // //     .mode(SaveMode.Overwrite)
-        // //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
+        // dimension_elite.write
+        //     .mode(SaveMode.Overwrite)
+        //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
 
-        // //  Ecriture de la table de faits dans la base de données Oracle avec buisness_id, review_id, category_id
-        // val fact_review = reviewDF
-        //     .select(
-        //         reviewDF.col("review_id"),
-        //         business_category.col("business_id"),
-        //         dim_category.col("category_id"),
-        //     )
+        //  Ecriture de la table de faits dans la base de données Oracle avec buisness_id, review_id, category_id
+        val fact_review = reviewDF
+            .select(
+                reviewDF.col("review_id"),
+                business_category.col("business_id"),
+                dim_category.col("category_id"),
+            )
         
-        // fact_review.show()
+        fact_review.show()
 
         // // Ecriture du DataFrame dans la table tendency de la base de données Oracle
-        // fact_review.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
+        fact_review.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
 
         // Fermeture de la session Spark
         spark.stop()
