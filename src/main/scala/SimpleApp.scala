@@ -202,8 +202,45 @@ object App {
         // Filtrer les avis avec un texte supérieur à 4000 caractères
         val dim_review_filtered = dim_review.filter(length(dim_review("text")) <= 4000)
 
-       
-        
+       // Alias pour les jointures
+        val reviewAS = dim_review_filtered.as("review")
+        val eliteAS= dimension_elite.as("elite")
+        val businessInfoAS = business_info.as("businessInfo")
+        val businessAS = dim_business.as("business")
+        val categoryAS = business_category.as("category")
+
+        // Ecriture de la table de fatits tendency avec les jointures et les calculs
+        val fact_tendency = reviewAS
+        .join(eliteAS, col("review.user_id") === col("elite.user_id"), "inner")
+        .join(businessInfoAS, col("review.business_id") === col("businessInfo.business_id"), "inner")
+        .join(businessAS, col("review.business_id") === col("business.business_id"), "inner")
+        .join(categoryAS, col("review.business_id") === col("category.business_id"), "inner")
+        .groupBy(
+            col("business.business_id"),
+            col("business.name"),
+            col("businessInfo.review_count"),
+            col("businessInfo.stars")
+        )
+        .agg(
+            avg(col("review.stars")).as("average_stars"),
+            sum(col("review.useful")).as("useful_reviews"),
+            countDistinct(col("category.category_id")).as("category_count"),
+            avg(col("elite.average_stars")).as("elite_average_stars"),
+            countDistinct(col("elite.user_id")).as("elite_count")
+        )
+        .withColumnRenamed("name", "business_name")
+        .withColumnRenamed("stars", "business_stars")
+
+
+         val factWithRestaurant = fact_tendency.join(dim_restaurant, Seq("business_id"), "left")
+        .withColumnRenamed("restaurant_id", "id_restaurant")
+
+        val factWithService = factWithRestaurant.join(dim_service, Seq("business_id"), "left")
+        .withColumnRenamed("service_id", "id_service")
+
+        val factFinal = factWithService.join(dim_accessibility, Seq("business_id"), "left")
+        .withColumnRenamed("accessibility_id", "id_accessibility")
+
         ///********** ECRITURE DES DONNEES **********///
 
         // // Creation de la table dimension_category
@@ -242,7 +279,10 @@ object App {
         //     .mode(SaveMode.Overwrite)
         //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
 
-      
+        // // Ecriture du DataFrame dans la table tendency de la base de données Oracle
+        fact_tendency.write
+                .mode(SaveMode.Overwrite)
+                .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
 
         // Fermeture de la session Spark
         spark.stop()
