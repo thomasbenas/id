@@ -150,10 +150,20 @@ object App {
             .withColumn("RestaurantsDelivery", col("RestaurantsDelivery").cast(BooleanType))
             .withColumn("RestaurantsTableService", col("RestaurantsTableService").cast(BooleanType))
 
-        // // Remplacement des valeurs null par false
-        dim_restaurant = dim_restaurant
-            .na
-            .fill(false)
+        // // // Remplacement des valeurs null par false
+        // dim_restaurant = dim_restaurant
+        //     .na
+        //     .fill(false)
+
+        // // // Remplacement des valeurs null par false pour dim_service
+        // dim_service = dim_service
+        //     .na
+        //     .fill(false)
+
+        // // // Remplacement des valeurs null par false pour dim_accessibility
+        // dim_accessibility = dim_accessibility
+        //     .na
+        //     .fill(false)
 
         // Lecture du fichier checkin.json
         var checkin_info = spark.read.json("dataset/yelp_academic_dataset_checkin.json").cache()
@@ -208,6 +218,9 @@ object App {
         val businessInfoAS = business_info.as("businessInfo")
         val businessAS = dim_business.as("business")
         val categoryAS = business_category.as("category")
+        val restaurantAS = dim_restaurant.as("restaurant")
+        val serviceAS = dim_service.as("service")
+        val accessibilityAS = dim_accessibility.as("accessibility")
 
         // Ecriture de la table de fatits tendency avec les jointures et les calculs
         val fact_tendency = reviewAS
@@ -215,6 +228,9 @@ object App {
         .join(businessInfoAS, col("review.business_id") === col("businessInfo.business_id"), "inner")
         .join(businessAS, col("review.business_id") === col("business.business_id"), "inner")
         .join(categoryAS, col("review.business_id") === col("category.business_id"), "inner")
+        .join(restaurantAS, col("review.business_id") === col("restaurant.business_id"), "inner")
+        .join(serviceAS, col("review.business_id") === col("service.business_id"), "inner")
+        .join(accessibilityAS, col("review.business_id") === col("accessibility.business_id"), "inner")
         .groupBy(
             col("business.business_id"),
             col("business.name"),
@@ -222,24 +238,17 @@ object App {
             col("businessInfo.stars")
         )
         .agg(
+            first(col("service.service_id")).as("service_id"),
+            first(col("restaurant.restaurant_id")).as("restaurant_id"),
+            first(col("accessibility.accessibility_id")).as("accessibility_id")
             avg(col("review.stars")).as("average_stars"),
             sum(col("review.useful")).as("useful_reviews"),
             countDistinct(col("category.category_id")).as("category_count"),
             avg(col("elite.average_stars")).as("elite_average_stars"),
-            countDistinct(col("elite.user_id")).as("elite_count")
+            countDistinct(col("elite.user_id")).as("elite_count"),
         )
         .withColumnRenamed("name", "business_name")
         .withColumnRenamed("stars", "business_stars")
-
-
-         val factWithRestaurant = fact_tendency.join(dim_restaurant, Seq("business_id"), "left")
-        .withColumnRenamed("restaurant_id", "id_restaurant")
-
-        val factWithService = factWithRestaurant.join(dim_service, Seq("business_id"), "left")
-        .withColumnRenamed("service_id", "id_service")
-
-        val factFinal = factWithService.join(dim_accessibility, Seq("business_id"), "left")
-        .withColumnRenamed("accessibility_id", "id_accessibility")
 
         ///********** ECRITURE DES DONNEES **********///
 
