@@ -205,6 +205,7 @@ object App {
             .select(
                 reviewDF.col("review_id"),
                 reviewDF.col("user_id"),
+                eliteDF.col("year"),
                 reviewDF.col("business_id"),
                 reviewDF.col("stars"),
                 reviewDF.col("useful"),
