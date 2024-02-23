@@ -240,7 +240,7 @@ object App {
         .agg(
             first(col("service.service_id")).as("service_id"),
             first(col("restaurant.restaurant_id")).as("restaurant_id"),
-            first(col("accessibility.accessibility_id")).as("accessibility_id")
+            first(col("accessibility.accessibility_id")).as("accessibility_id"),
             avg(col("review.stars")).as("average_stars"),
             sum(col("review.useful")).as("useful_reviews"),
             countDistinct(col("category.category_id")).as("category_count"),
