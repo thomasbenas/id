@@ -174,32 +174,33 @@ object App {
             .withColumn("checkin_id", monotonically_increasing_id())
 
         // Chargement de la table user de la base de données PostgreSQL
-        val userDF = spark.read
+        var userDF = spark.read
             .jdbc(urlPostgreSQL, "yelp.user", connectionProporetiesPostgreSQL)
 
         // Chargement de la table elite de la base de données PostgreSQL
-        val eliteDF = spark.read
+        var eliteDF = spark.read
             .jdbc(urlPostgreSQL, "yelp.elite", connectionProporetiesPostgreSQL)
 
         // Chargement de la table review de la base de données PostgreSQL
-        val reviewDF = spark.read
+        var reviewDF = spark.read
             .jdbc(urlPostgreSQL, "yelp.review", connectionProporetiesPostgreSQL)
 
         // Jointure des DataFrames sur la colonne user_id
-        val eliteMembersDF = eliteDF
+        var eliteMembersDF = eliteDF
             .join(userDF, "user_id") // Utilisez "user_id" comme clé de jointure
 
         // Sélection et transformation des colonnes pour la dimension Elite
-        val dimension_elite = eliteMembersDF
+        var dimension_elite = eliteMembersDF
             .select(
                 eliteDF.col("user_id"),
                 eliteDF.col("year"),
                 userDF.col("average_stars"),
                 userDF.col("useful")
             )
-        
-        // Selection des reviews des utilisateurs élites
-        val dim_review = reviewDF
+
+        // DATAFRAME Review
+        // Sélection des avis des utilisateurs élites
+        var dim_review = reviewDF
             .join(eliteDF, "user_id")
             .select(
                 reviewDF.col("review_id"),
@@ -211,8 +212,13 @@ object App {
                 reviewDF.col("date")
             )
 
-        // Filtrer les avis avec un texte supérieur à 4000 caractères
-        val dim_review_filtered = dim_review.filter(length(dim_review("text")) <= 4000)
+        var dim_review_filtered = dim_review.withColumn("text", regexp_replace(col("text"),"[^a-zA-Z]", " "))
+
+        // Filtrer les avis où la longueur du texte est inférieure ou égale à 4000 caractères
+        dim_review_filtered = dim_review_filtered.filter(length(col("text")) < 4000)
+
+        // Enlever les doublons du DataFrame filtré
+        dim_review_filtered = dim_review_filtered.distinct()
 
        // Alias pour les jointures
         val reviewAS = dim_review_filtered.as("review")
@@ -224,9 +230,9 @@ object App {
         val serviceAS = dim_service.as("service")
         val accessibilityAS = dim_accessibility.as("accessibility")
 
-        // Ecriture de la table de fatits tendency avec les jointures et les calculs
+        // Ecriture de la table de faits tendency avec les jointures et les calculs
         // val fact_tendency = reviewAS
-        // .join(eliteAS, col("review.user_id") === col("elite.user_id"), "inner")
+        // .join(eliteAS, col("review.user_idim_review_distinctd") === col("elite.user_id"), "inner")
         // .join(businessInfoAS, col("review.business_id") === col("businessInfo.business_id"), "inner")
         // .join(businessAS, col("review.business_id") === col("business.business_id"), "inner")
         // .join(categoryAS, col("review.business_id") === col("category.business_id"), "inner")
@@ -265,7 +271,7 @@ object App {
         //    .jdbc(urlOracle, "business", connectionPropertiesOracle)
 
         // // Ecriture du dataframe business_category dans la table business_category de la base de données Oracle
-        business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
+        //business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
 
         // // Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
         // dim_service.write
@@ -280,10 +286,10 @@ object App {
         //     .mode(SaveMode.Overwrite)
         //     .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
 
-        // // Ecriture du DataFrame dans la table review de la base de données Oracle
-        // dim_review_filtered.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "review", connectionPropertiesOracle)
+        // Ecriture du DataFrame dans la table review de la base de données Oracle
+        dim_review_filtered.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "review", connectionPropertiesOracle)
 
         // // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
         // dimension_elite.write
