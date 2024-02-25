@@ -60,6 +60,25 @@ from TENDENCY t
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id"
 WHERE b."state" = {{state}}
 
+-- Calculez la moyenne des étoiles pour chaque entreprise et analysez comment cette moyenne varie au fil du temps.
+SELECT 
+    t."business_id",
+    t."business_name",
+    EXTRACT(YEAR FROM r."date") AS "year",
+    EXTRACT(MONTH FROM r."date") AS "month",
+    ROUND(AVG(r."stars"), 2) AS "average_stars"
+FROM 
+    TENDENCY t 
+INNER JOIN 
+    REVIEW r ON r."business_id" = t."business_id"
+WHERE 
+    t."business_name" = {{business_name}}
+GROUP BY 
+    t."business_id", t."business_name", EXTRACT(YEAR FROM r."date"), EXTRACT(MONTH FROM r."date")
+ORDER BY 
+    t."business_id", EXTRACT(YEAR FROM r."date"), EXTRACT(MONTH FROM r."date");
+
+
 
 -- Les endroits accessibles sont mieux notés ?
 SELECT 
