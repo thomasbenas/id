@@ -60,3 +60,12 @@ from TENDENCY t
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id"
 WHERE b."state" = {{state}}
 
+
+-- Les endroits accessibles sont mieux notés ?
+SELECT 
+    ROUND(AVG(CASE WHEN a."WheelchairAccessible"  = 1 THEN b."stars" ELSE NULL END)) AS avg_rating_accessible,
+    ROUND(AVG(CASE WHEN a."WheelchairAccessible" =  0 THEN b."stars" ELSE NULL END)) AS avg_rating_non_accessible
+FROM 
+    BUSINESS b
+LEFT JOIN 
+    ACCESSIBILITY a ON b."business_id" = a."business_id"
