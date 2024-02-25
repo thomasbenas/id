@@ -91,7 +91,6 @@ ORDER BY
     t."business_id", EXTRACT(YEAR FROM r."date"), EXTRACT(MONTH FROM r."date");
 
 
-
 -- Les endroits accessibles sont mieux notés ?
 SELECT 
     ROUND(AVG(CASE WHEN a."WheelchairAccessible"  = 1 THEN b."stars" ELSE NULL END)) AS avg_rating_accessible,
@@ -241,3 +240,18 @@ SELECT
 FROM TENDENCY t 
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
 WHERE b."Saturday" IS NOT NULL AND b."Sunday" IS NULL
+
+-- Nombre de commentaires par an et par état (pour voir la tendance d'un état)
+SELECT 
+    COUNT(r."review_id") AS NumberOfReviews,
+    EXTRACT(YEAR FROM r."date") AS Year,
+    b."state" AS State
+FROM 
+    "REVIEW" r
+JOIN 
+    "BUSINESS" b ON r."business_id" = b."business_id"
+WHERE b."state" = {{state}}
+GROUP BY 
+    EXTRACT(YEAR FROM r."date"), b."state"
+ORDER BY 
+    EXTRACT(YEAR FROM r."date"), b."state"
