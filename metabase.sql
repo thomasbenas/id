@@ -193,7 +193,7 @@ WHERE
 UNION
 SELECT 
     'Non-Restaurant' AS BusinessType,
-    ROUND(AVG(t."average_stars"),1) AS AverageStars
+    AVG(t."review_count") AS AverageStars
 FROM 
     "BUSINESS" b
 JOIN 
