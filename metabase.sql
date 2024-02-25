@@ -107,3 +107,33 @@ GROUP BY
     number_of_services
 ORDER BY 
     number_of_services DESC;
+
+-- Note moyenne en fonction du wifi
+SELECT 
+    s."Wifi",
+    AVG(t."average_stars") AS AverageStars
+FROM 
+    SERVICE s
+JOIN 
+    BUSINESS b ON b."business_id" = s."business_id"
+JOIN 
+    TENDENCY t ON t."business_id" = b."business_id"
+WHERE 
+    s."Wifi" IN ('paid', 'no', 'free')
+GROUP BY 
+    s."Wifi"
+
+-- Nombre moyen de commentaires en fonction du wifi
+SELECT 
+    s."Wifi",
+    ROUND(AVG(t."review_count")) AS AverageStars
+FROM 
+    SERVICE s
+JOIN 
+    BUSINESS b ON b."business_id" = s."business_id"
+JOIN 
+    TENDENCY t ON t."business_id" = b."business_id"
+WHERE 
+    s."Wifi" IN ('paid', 'no', 'free')
+GROUP BY 
+    s."Wifi"
