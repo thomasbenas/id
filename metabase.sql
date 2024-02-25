@@ -60,6 +60,18 @@ from TENDENCY t
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id"
 WHERE b."state" = {{state}}
 
+-- bonus cliquable sur la map : Nombre moyen de commentaires par état
+SELECT AVG(t."review_count")
+from TENDENCY t 
+INNER JOIN BUSINESS b ON b."business_id" = t."business_id"
+WHERE b."state" = {{state}}
+
+-- bonus cliquable sur la map : Nombre moyen de membre elite par état
+SELECT COUNT(t."business_id")
+from TENDENCY t 
+INNER JOIN BUSINESS b ON b."business_id" = t."business_id"
+WHERE b."state" = {{state}}
+
 -- Calculez la moyenne des étoiles pour chaque entreprise et analysez comment cette moyenne varie au fil du temps.
 SELECT 
     t."business_id",
@@ -207,3 +219,25 @@ WHERE
     r."RestaurantsReservations" = 0 AND 
     r."RestaurantsDelivery" = 0 AND 
     r."RestaurantsTableService" = 0
+
+-- Note moyenne des commerces en fonction des jours d'ouverture le weekend
+SELECT
+    'Ouvert' AS WeekEnd,
+    ROUND(avg(t."average_stars"),1) AS Note_Moyenne
+FROM TENDENCY t 
+INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
+WHERE b."Saturday" IS NOT NULL AND b."Sunday" IS NOT NULL
+UNION
+SELECT
+    'Fermé' AS WeekEnd,
+    ROUND(avg(t."average_stars"),1) AS Note_Moyenne
+FROM TENDENCY t 
+INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
+WHERE b."Saturday" IS NULL AND b."Sunday" IS NULL
+UNION
+SELECT
+    'Samedi Seulement' AS WeekEnd,
+    ROUND(avg(t."average_stars"),1) AS Note_Moyenne
+FROM TENDENCY t 
+INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
+WHERE b."Saturday" IS NOT NULL AND b."Sunday" IS NULL
