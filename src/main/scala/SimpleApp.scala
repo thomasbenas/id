@@ -152,7 +152,7 @@ object App {
             .withColumn("RestaurantsDelivery", col("RestaurantsDelivery").cast(BooleanType))
             .withColumn("RestaurantsTableService", col("RestaurantsTableService").cast(BooleanType))
 
-        // // // Remplacement des valeurs null par false
+        // // Remplacement des valeurs null par false
         // dim_restaurant = dim_restaurant
         //     .na
         //     .fill(false)
@@ -232,60 +232,60 @@ object App {
         val accessibilityAS = dim_accessibility.as("accessibility")
 
         // Ecriture de la table de faits tendency avec les jointures et les calculs
-        // val fact_tendency = reviewAS
-        // .join(eliteAS, col("review.user_idim_review_distinctd") === col("elite.user_id"), "inner")
-        // .join(businessInfoAS, col("review.business_id") === col("businessInfo.business_id"), "inner")
-        // .join(businessAS, col("review.business_id") === col("business.business_id"), "inner")
-        // .join(categoryAS, col("review.business_id") === col("category.business_id"), "inner")
-        // .join(restaurantAS, col("review.business_id") === col("restaurant.business_id"), "inner")
-        // .join(serviceAS, col("review.business_id") === col("service.business_id"), "inner")
-        // .join(accessibilityAS, col("review.business_id") === col("accessibility.business_id"), "inner")
-        // .groupBy(
-        //     col("business.business_id"),
-        //     col("business.name"),
-        //     col("businessInfo.review_count"),
-        //     col("businessInfo.stars")
-        // )
-        // .agg(
-        //     first(col("service.service_id")).as("service_id"),
-        //     first(col("restaurant.restaurant_id")).as("restaurant_id"),
-        //     first(col("accessibility.accessibility_id")).as("accessibility_id"),
-        //     avg(col("review.stars")).as("average_stars"),
-        //     sum(col("review.useful")).as("useful_reviews"),
-        //     countDistinct(col("category.category_id")).as("category_count"),
-        //     avg(col("elite.average_stars")).as("elite_average_stars"),
-        //     countDistinct(col("elite.user_id")).as("elite_count"),
-        // )
-        // .withColumnRenamed("name", "business_name")
-        // .withColumnRenamed("stars", "business_stars")
+        val fact_tendency = businessAS
+            .join(businessInfoAS, col("business.business_id") === col("businessInfo.business_id"), "left_outer")
+            .join(reviewAS, col("business.business_id") === col("review.business_id"), "left_outer")
+            .join(eliteAS, col("review.user_id") === col("elite.user_id"), "left_outer")
+            .join(categoryAS, col("business.business_id") === col("category.business_id"), "left_outer")
+            .join(restaurantAS, col("business.business_id") === col("restaurant.business_id"), "left_outer")
+            .join(serviceAS, col("business.business_id") === col("service.business_id"), "left_outer")
+            .join(accessibilityAS, col("business.business_id") === col("accessibility.business_id"), "left_outer")
+            .groupBy(
+                col("business.business_id"),
+                col("business.name"),
+                col("business.review_count"),
+                col("business.stars")
+            )
+            .agg(
+                first(col("service.service_id"), ignoreNulls = true).as("service_id"),
+                first(col("restaurant.restaurant_id"), ignoreNulls = true).as("restaurant_id"),
+                first(col("accessibility.accessibility_id"), ignoreNulls = true).as("accessibility_id"),
+                avg(col("review.stars")).as("average_stars"),
+                sum(col("review.useful")).as("useful_reviews"),
+                countDistinct(col("category.category_id")).as("category_count"),
+                avg(col("elite.average_stars")).as("elite_average_stars"),
+                countDistinct(col("elite.user_id")).as("elite_count")
+            )
+            .withColumnRenamed("name", "business_name")
+            .withColumnRenamed("stars", "business_stars")
 
         ///********** ECRITURE DES DONNEES **********///
 
         // // Creation de la table dimension_category
-        // dim_category.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "category", connectionPropertiesOracle)
+        dim_category.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "category", connectionPropertiesOracle)
 
         // // Ecriture du dataframe dim_business dans la table dimension_business de la base de données Oracle
-        // dim_business.write
-        //    .mode(SaveMode.Overwrite)
-        //    .jdbc(urlOracle, "business", connectionPropertiesOracle)
+        dim_business.write
+           .mode(SaveMode.Overwrite)
+           .jdbc(urlOracle, "business", connectionPropertiesOracle)
 
         // // Ecriture du dataframe business_category dans la table business_category de la base de données Oracle
-        //business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
+        business_category.write.mode(SaveMode.Overwrite).jdbc(urlOracle, "business_category", connectionPropertiesOracle)
 
         // // Ecriture des dataframes dans les tables correspondantes de la base de données Oracle
-        // dim_service.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "service", connectionPropertiesOracle)
+        dim_service.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "service", connectionPropertiesOracle)
 
-        // dim_accessibility.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "accessibility", connectionPropertiesOracle)
+        dim_accessibility.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "accessibility", connectionPropertiesOracle)
 
-        // dim_restaurant.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
+        dim_restaurant.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "restaurant", connectionPropertiesOracle)       
 
         // Ecriture du DataFrame dans la table review de la base de données Oracle
         dim_review_filtered.write
@@ -293,14 +293,14 @@ object App {
             .jdbc(urlOracle, "review", connectionPropertiesOracle)
 
         // // Ecriture du DataFrame dans la table dimension_elite de la base de données Oracle
-        // dimension_elite.write
-        //     .mode(SaveMode.Overwrite)
-        //     .jdbc(urlOracle, "elite", connectionPropertiesOracle)
+        dimension_elite.write
+            .mode(SaveMode.Overwrite)
+            .jdbc(urlOracle, "elite", connectionPropertiesOracle)
 
         // // Ecriture du DataFrame dans la table tendency de la base de données Oracle
-        // fact_tendency.write
-        //         .mode(SaveMode.Overwrite)
-        //         .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
+        fact_tendency.write
+                .mode(SaveMode.Overwrite)
+                .jdbc(urlOracle, "tendency", connectionPropertiesOracle)
 
         // Fermeture de la session Spark
         spark.stop()
