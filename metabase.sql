@@ -255,3 +255,38 @@ GROUP BY
     EXTRACT(YEAR FROM r."date"), b."state"
 ORDER BY 
     EXTRACT(YEAR FROM r."date"), b."state"
+
+-- Comparaison de la note moyenne d'un commerce, la note moyenne des membres élites en fonction de mention utile par état
+-- Un peu long
+SELECT 
+    b."state" AS State,
+    AVG(t."average_stars") AS AverageBusinessRating,
+    AVG(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN r."stars" ELSE NULL END) AS EliteUsefulRating,
+    AVG(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN r."stars" ELSE NULL END) AS EliteNotUsefulRating
+FROM 
+    BUSINESS b
+LEFT JOIN TENDENCY t ON b."business_id" = t."business_id"
+LEFT JOIN REVIEW r ON b."business_id" = r."business_id"
+LEFT JOIN ELITE e ON r."user_id" = e."user_id"
+WHERE b."state" IS NOT NULL 
+GROUP BY 
+    b."state"
+
+-- Comparaison du nombre de commentaires d'un commerce, le nombre de commentaires des membres élites en fonction de mention utile par état
+-- Un peu long
+SELECT 
+    b."state" AS State,
+    COUNT(t."review_count") AS AverageBusinessRating,
+    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN r."review_id" ELSE NULL END) AS EliteUsefulRating,
+    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN r."review_id" ELSE NULL END) AS EliteNotUsefulRating
+FROM 
+    "BUSINESS" b
+LEFT JOIN "TENDENCY" t ON b."business_id" = t."business_id"
+LEFT JOIN "REVIEW" r ON b."business_id" = r."business_id"
+LEFT JOIN "ELITE" e ON r."user_id" = e."user_id"
+GROUP BY 
+    b."state"
+HAVING 
+    COUNT(r."review_id") > 0 AND 
+    (COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN r."review_id" ELSE NULL END) > 0 or
+    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN r."review_id" ELSE NULL END) > 0)
