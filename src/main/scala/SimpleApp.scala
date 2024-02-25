@@ -218,8 +218,8 @@ object App {
         // Filtrer les avis où la longueur du texte est inférieure ou égale à 4000 caractères
         dim_review_filtered = dim_review_filtered.filter(length(col("text")) < 4000)
 
-        // Enlever les doublons du DataFrame filtré
-        dim_review_filtered = dim_review_filtered.distinct()
+         // Enlever les avis avec des review_id en double
+        dim_review_filtered = dim_review_filtered.dropDuplicates("review_id")
 
        // Alias pour les jointures
         val reviewAS = dim_review_filtered.as("review")
