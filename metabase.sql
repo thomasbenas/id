@@ -88,3 +88,22 @@ FROM
     BUSINESS b
 LEFT JOIN 
     ACCESSIBILITY a ON b."business_id" = a."business_id"
+
+-- plus de services meilleure note ?
+SELECT 
+    number_of_services,
+    AVG(average_rating) AS average_rating
+FROM 
+    (SELECT 
+         t."business_id",
+         (s."ByAppointmentOnly" + s."OutdoorSeating" + s."BusinessAcceptsCreditCards") AS number_of_services,
+         t."average_stars" AS average_rating
+     FROM 
+         TENDENCY t
+     JOIN 
+         SERVICE s ON t."business_id" = s."business_id"
+    ) services_tendency
+GROUP BY 
+    number_of_services
+ORDER BY 
+    number_of_services DESC;
