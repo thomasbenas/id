@@ -137,3 +137,73 @@ WHERE
     s."Wifi" IN ('paid', 'no', 'free')
 GROUP BY 
     s."Wifi"
+
+-- Note moyenne en fonction du type de commerce (resto ou autres)
+SELECT 
+    'Restaurant' AS BusinessType,
+    ROUND(AVG(t."average_stars"),1) AS AverageStars
+FROM 
+    "BUSINESS" b
+JOIN 
+    "RESTAURANT" r ON b."business_id" = r."business_id"
+JOIN 
+    "TENDENCY" t ON b."business_id" = t."business_id"
+WHERE 
+    r."RestaurantsPriceRange2" = 1 OR 
+    r."RestaurantsGoodForGroups" = 1 OR 
+    r."RestaurantsTakeOut" = 1 OR 
+    r."RestaurantsReservations" = 1 OR 
+    r."RestaurantsDelivery" = 1 OR 
+    r."RestaurantsTableService" = 1
+UNION
+SELECT 
+    'Non-Restaurant' AS BusinessType,
+    ROUND(AVG(t."average_stars"),1) AS AverageStars
+FROM 
+    "BUSINESS" b
+JOIN 
+    "RESTAURANT" r ON b."business_id" = r."business_id"
+JOIN 
+    "TENDENCY" t ON b."business_id" = t."business_id"
+WHERE 
+    r."RestaurantsPriceRange2" = 0 AND 
+    r."RestaurantsGoodForGroups" = 0 AND 
+    r."RestaurantsTakeOut" = 0 AND 
+    r."RestaurantsReservations" = 0 AND 
+    r."RestaurantsDelivery" = 0 AND 
+    r."RestaurantsTableService" = 0
+
+-- Nombre moyen de commentaires en fonction du type de commerce (resto ou autres)
+SELECT 
+    'Restaurant' AS BusinessType,
+    AVG(t."review_count") AS AverageStars
+FROM 
+    "BUSINESS" b
+JOIN 
+    "RESTAURANT" r ON b."business_id" = r."business_id"
+JOIN 
+    "TENDENCY" t ON b."business_id" = t."business_id"
+WHERE 
+    r."RestaurantsPriceRange2" = 1 OR 
+    r."RestaurantsGoodForGroups" = 1 OR 
+    r."RestaurantsTakeOut" = 1 OR 
+    r."RestaurantsReservations" = 1 OR 
+    r."RestaurantsDelivery" = 1 OR 
+    r."RestaurantsTableService" = 1
+UNION
+SELECT 
+    'Non-Restaurant' AS BusinessType,
+    ROUND(AVG(t."average_stars"),1) AS AverageStars
+FROM 
+    "BUSINESS" b
+JOIN 
+    "RESTAURANT" r ON b."business_id" = r."business_id"
+JOIN 
+    "TENDENCY" t ON b."business_id" = t."business_id"
+WHERE 
+    r."RestaurantsPriceRange2" = 0 AND 
+    r."RestaurantsGoodForGroups" = 0 AND 
+    r."RestaurantsTakeOut" = 0 AND 
+    r."RestaurantsReservations" = 0 AND 
+    r."RestaurantsDelivery" = 0 AND 
+    r."RestaurantsTableService" = 0
