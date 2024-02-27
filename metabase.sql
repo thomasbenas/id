@@ -247,9 +247,9 @@ SELECT
     EXTRACT(YEAR FROM r."date") AS Year,
     b."state" AS State
 FROM 
-    "REVIEW" r
+    REVIEW r
 JOIN 
-    "BUSINESS" b ON r."business_id" = b."business_id"
+    BUSINESS b ON r."business_id" = b."business_id"
 WHERE b."state" = {{state}}
 GROUP BY 
     EXTRACT(YEAR FROM r."date"), b."state"
@@ -276,14 +276,14 @@ GROUP BY
 -- Un peu long
 SELECT 
     b."state" AS State,
-    COUNT(t."review_count") AS AverageBusinessRating,
-    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN r."review_id" ELSE NULL END) AS EliteUsefulRating,
-    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN r."review_id" ELSE NULL END) AS EliteNotUsefulRating
+    COUNT(t."review_count") AS AverageBusinessReview,
+    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN r."review_id" ELSE NULL END) AS EliteUsefulReview,
+    COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN r."review_id" ELSE NULL END) AS EliteNotUsefulReview
 FROM 
-    "BUSINESS" b
-LEFT JOIN "TENDENCY" t ON b."business_id" = t."business_id"
-LEFT JOIN "REVIEW" r ON b."business_id" = r."business_id"
-LEFT JOIN "ELITE" e ON r."user_id" = e."user_id"
+    BUSINESS b
+LEFT JOIN TENDENCY t ON b."business_id" = t."business_id"
+LEFT JOIN REVIEW r ON b."business_id" = r."business_id"
+LEFT JOIN ELITE e ON r."user_id" = e."user_id"
 GROUP BY 
     b."state"
 HAVING 
