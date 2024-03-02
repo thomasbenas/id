@@ -1,6 +1,6 @@
 -- Comparer les notes moyeennes des business avec ou sans prise en charge de la CB 
 SELECT 
-    ROUND("average_stars"),
+    ROUND("average_stars") AS AverageRating,
     COUNT(CASE WHEN Service."BusinessAcceptsCreditCards" = 1 THEN 1 END) AS AcceptCreditCards,
     COUNT(CASE WHEN Service."BusinessAcceptsCreditCards" = 0 THEN 1 END) AS NotAcceptCreditCards
 FROM 
@@ -17,7 +17,7 @@ ORDER BY
 
 SELECT 
     CATEGORY."category_name",
-    ROUND(AVG(TENDENCY."average_stars")) AS "average_rating"
+    ROUND(AVG(TENDENCY."average_stars")) AS AverageRating
 FROM TENDENCY
 INNER JOIN 
     BUSINESS ON BUSINESS."business_id" = TENDENCY."business_id" 
@@ -28,7 +28,7 @@ INNER JOIN
 GROUP BY 
     CATEGORY."category_name"
 ORDER BY 
-    "average_rating" DESC
+    AverageRating DESC
 
 -- Quels catégories de commerce sont les mieux notés ?
 -- Idem pas exploitable car trop de données
@@ -44,7 +44,7 @@ ORDER BY ROUND(t."average_stars")
 -- CARTE : note moyenne par état
 SELECT 
     b."state",
-    ROUND(AVG(t."average_stars"),1) AS "avg_rounded_stars"
+    ROUND(AVG(t."average_stars"),1) AS AverageRating
 FROM 
     TENDENCY t
 INNER JOIN 
@@ -52,7 +52,7 @@ INNER JOIN
 GROUP BY 
     b."state"
 ORDER BY 
-    "avg_rounded_stars" DESC
+    AverageRating DESC
 
 -- bonus cliquable sur la map : Nombre de business par état
 SELECT COUNT(t."business_id")
@@ -76,9 +76,9 @@ WHERE b."state" = {{state}}
 SELECT 
     t."business_id",
     t."business_name",
-    EXTRACT(YEAR FROM r."date") AS "year",
-    EXTRACT(MONTH FROM r."date") AS "month",
-    ROUND(AVG(r."stars"), 2) AS "average_stars"
+    EXTRACT(YEAR FROM r."date") AS year,
+    EXTRACT(MONTH FROM r."date") AS month,
+    ROUND(AVG(r."stars"), 2) AS AverageRating
 FROM 
     TENDENCY t 
 INNER JOIN 
@@ -103,12 +103,12 @@ LEFT JOIN
 -- plus de services meilleure note ?
 SELECT 
     number_of_services,
-    AVG(average_rating) AS average_rating
+    AVG(average_rating) AS AverageRating
 FROM 
     (SELECT 
          t."business_id",
          (s."ByAppointmentOnly" + s."OutdoorSeating" + s."BusinessAcceptsCreditCards") AS number_of_services,
-         t."average_stars" AS average_rating
+         t."average_stars" AS AverageRating
      FROM 
          TENDENCY t
      JOIN 
@@ -122,7 +122,7 @@ ORDER BY
 -- Note moyenne en fonction du wifi
 SELECT 
     s."Wifi",
-    AVG(t."average_stars") AS AverageStars
+    AVG(t."average_stars") AS AverageRating
 FROM 
     SERVICE s
 JOIN 
@@ -137,7 +137,7 @@ GROUP BY
 -- Nombre moyen de commentaires en fonction du wifi
 SELECT 
     s."Wifi",
-    ROUND(AVG(t."review_count")) AS AverageStars
+    ROUND(AVG(t."review_count")) AS AverageRating
 FROM 
     SERVICE s
 JOIN 
@@ -152,7 +152,7 @@ GROUP BY
 -- Note moyenne en fonction du type de commerce (resto ou autres)
 SELECT 
     'Restaurant' AS BusinessType,
-    ROUND(AVG(t."average_stars"),1) AS AverageStars
+    ROUND(AVG(t."average_stars"),1) AS AverageRating
 FROM 
     "BUSINESS" b
 JOIN 
@@ -169,7 +169,7 @@ WHERE
 UNION
 SELECT 
     'Non-Restaurant' AS BusinessType,
-    ROUND(AVG(t."average_stars"),1) AS AverageStars
+    ROUND(AVG(t."average_stars"),1) AS AverageRating
 FROM 
     "BUSINESS" b
 JOIN 
@@ -187,7 +187,7 @@ WHERE
 -- Nombre moyen de commentaires en fonction du type de commerce (resto ou autres)
 SELECT 
     'Restaurant' AS BusinessType,
-    AVG(t."review_count") AS AverageStars
+    AVG(t."review_count") AS AverageReview
 FROM 
     "BUSINESS" b
 JOIN 
@@ -204,7 +204,7 @@ WHERE
 UNION
 SELECT 
     'Non-Restaurant' AS BusinessType,
-    AVG(t."review_count") AS AverageStars
+    AVG(t."review_count") AS AverageReview
 FROM 
     "BUSINESS" b
 JOIN 
@@ -222,21 +222,21 @@ WHERE
 -- Note moyenne des commerces en fonction des jours d'ouverture le weekend
 SELECT
     'Ouvert' AS WeekEnd,
-    ROUND(avg(t."average_stars"),1) AS Note_Moyenne
+    ROUND(avg(t."average_stars"),1) AS AvgRating
 FROM TENDENCY t 
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
 WHERE b."Saturday" IS NOT NULL AND b."Sunday" IS NOT NULL
 UNION
 SELECT
     'Fermé' AS WeekEnd,
-    ROUND(avg(t."average_stars"),1) AS Note_Moyenne
+    ROUND(avg(t."average_stars"),1) AS AvgRating
 FROM TENDENCY t 
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
 WHERE b."Saturday" IS NULL AND b."Sunday" IS NULL
 UNION
 SELECT
     'Samedi Seulement' AS WeekEnd,
-    ROUND(avg(t."average_stars"),1) AS Note_Moyenne
+    ROUND(avg(t."average_stars"),1) AS AvgRating
 FROM TENDENCY t 
 INNER JOIN BUSINESS b ON b."business_id" = t."business_id" 
 WHERE b."Saturday" IS NOT NULL AND b."Sunday" IS NULL
