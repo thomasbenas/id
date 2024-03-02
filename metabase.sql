@@ -290,3 +290,32 @@ HAVING
     COUNT(r."review_id") > 0 AND 
     (COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN r."review_id" ELSE NULL END) > 0 or
     COUNT(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN r."review_id" ELSE NULL END) > 0)
+
+-- Création d'une vue
+CREATE VIEW BusinessReviewSummary AS
+SELECT 
+    b."state" AS State,
+    COUNT(t."review_count") AS AverageBusinessReview,
+    SUM(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 1 THEN 1 ELSE 0 END) AS EliteUsefulReview,
+    SUM(CASE WHEN e."user_id" IS NOT NULL AND r."useful" = 0 THEN 1 ELSE 0 END) AS EliteNotUsefulReview,
+    COUNT(r."review_id") AS TotalReviews
+FROM 
+    BUSINESS b
+INNER JOIN TENDENCY t ON b."business_id" = t."business_id"
+LEFT JOIN REVIEW r ON b."business_id" = r."business_id"
+LEFT JOIN ELITE e ON r."user_id" = e."user_id"
+GROUP BY 
+    b."state";
+
+-- Requête cube pour avoir les notes moyennes de chaque catégories par état 
+SELECT 
+    COALESCE(b."state", 'Total') AS "state",
+    COALESCE(c."category_name", 'All Categories') AS "category",
+    AVG(b."stars") AS "average_stars"
+FROM 
+    "BUSINESS" b
+JOIN 
+    "BUSINESS_CATEGORY" bc ON b."business_id" = bc."business_id"
+JOIN 
+    "CATEGORY" c ON bc."category_id" = c."category_id"
+GROUP BY CUBE (b."state", c."category_name");
